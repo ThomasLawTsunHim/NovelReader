@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>My Personal Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- OpenCC-JS for Chinese Conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+    <style>
+        /* Hide scrollbar for clean look but allow scrolling */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        body {
+            touch-action: manipulation;
+            transition: background-color 0.3s ease;
+        }
+
+        #content-area {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        input[type="range"] {
+            width: 60%;
+        }
+
+        /* Toggle Switch Styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #2563eb; }
+        input:checked + .slider:before { transform: translateX(26px); }
+    </style>
+</head>
+<body class="bg-white text-gray-900 min-h-screen flex flex-col">
+
+    <!-- Header / Controls Toggle -->
+    <header id="top-bar" class="fixed top-0 left-0 right-0 z-50 bg-opacity-90 backdrop-blur-md bg-gray-100 border-b border-gray-300 p-4 flex justify-between items-center transition-transform duration-300">
+        <h1 class="font-bold text-lg">My Reader</h1>
+        <div class="flex gap-4">
+            <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                Import
+                <input type="file" id="fileInput" accept=".txt" class="hidden">
+            </label>
+            <button id="settingsBtn" class="bg-gray-200 p-1 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Reader Area -->
+    <main id="reader-container" class="flex-grow pt-24 pb-12 px-6 max-w-2xl mx-auto w-full overflow-y-auto">
+        <div id="content-area" class="pb-20">
+            Welcome! Use the Import button to load a .txt book.
+            
+            Your settings and last read book will be saved locally on your device.
+        </div>
+    </main>
+
+    <!-- Settings Drawer -->
+    <div id="settingsDrawer" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50" id="closeDrawer"></div>
+        <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl transition-transform translate-y-0">
+            <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            
+            <h2 class="text-xl font-bold mb-6 text-gray-800">Reading Settings</h2>
+            
+            <div class="setting-row text-gray-700">
+                <span>Traditional Chinese</span>
+                <label class="switch">
+                    <input type="checkbox" id="traditionalToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-row text-gray-700">
+                <span>Text Size</span>
+                <input type="range" id="textSize" min="14" max="40" value="18">
+            </div>
+
+            <div class="setting-row text-gray-700">
+                <span>Line Height</span>
+                <input type="range" id="lineHeight" min="1" max="2.5" step="0.1" value="1.6">
+            </div>
+
+            <div class="setting-row text-gray-700">
+                <span>Background</span>
+                <div class="flex gap-2">
+                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-white" onclick="setTheme('#ffffff', '#111827')"></button>
+                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#f4ecd8]" onclick="setTheme('#f4ecd8', '#5b4636')"></button>
+                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#2c2c2c]" onclick="setTheme('#2c2c2c', '#e5e7eb')"></button>
+                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#000000]" onclick="setTheme('#000000', '#9ca3af')"></button>
+                </div>
+            </div>
+
+            <div class="setting-row text-gray-700">
+                <span>Font Color</span>
+                <input type="color" id="textColor" value="#111827">
+            </div>
+
+            <button id="doneBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4">Done</button>
+        </div>
+    </div>
+
+    <script>
+        const contentArea = document.getElementById('content-area');
+        const fileInput = document.getElementById('fileInput');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsDrawer = document.getElementById('settingsDrawer');
+        const closeDrawer = document.getElementById('closeDrawer');
+        const doneBtn = document.getElementById('doneBtn');
+        const topBar = document.getElementById('top-bar');
+        const traditionalToggle = document.getElementById('traditionalToggle');
+
+        // Initialize OpenCC Converter (Simplified to Traditional)
+        const converter = OpenCC.Converter({ from: 'cn', to: 'hk' });
+
+        // State Management
+        let appState = {
+            originalText: "", // Keep original to allow toggling back and forth
+            fontSize: 18,
+            lineHeight: 1.6,
+            bgColor: "#ffffff",
+            textColor: "#111827",
+            useTraditional: false
+        };
+
+        // Load saved state
+        function init() {
+            const saved = localStorage.getItem('reader_state');
+            if (saved) {
+                appState = JSON.parse(saved);
+                applyStyles();
+                if (appState.originalText) {
+                    renderText();
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('reader_state', JSON.stringify(appState));
+        }
+
+        function renderText() {
+            if (!appState.originalText) return;
+            
+            if (appState.useTraditional) {
+                contentArea.innerText = converter(appState.originalText);
+            } else {
+                contentArea.innerText = appState.originalText;
+            }
+        }
+
+        function applyStyles() {
+            contentArea.style.fontSize = appState.fontSize + 'px';
+            contentArea.style.lineHeight = appState.lineHeight;
+            document.body.style.backgroundColor = appState.bgColor;
+            contentArea.style.color = appState.textColor;
+            
+            // Sync UI inputs
+            document.getElementById('textSize').value = appState.fontSize;
+            document.getElementById('lineHeight').value = appState.lineHeight;
+            document.getElementById('textColor').value = appState.textColor;
+            traditionalToggle.checked = appState.useTraditional;
+        }
+
+        function setTheme(bg, text) {
+            appState.bgColor = bg;
+            appState.textColor = text;
+            applyStyles();
+            saveState();
+        }
+
+        // File Import
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target.result;
+                appState.originalText = text;
+                renderText();
+                window.scrollTo(0, 0);
+                saveState();
+            };
+            reader.readAsText(file);
+        });
+
+        // Event Listeners for Controls
+        traditionalToggle.addEventListener('change', (e) => {
+            appState.useTraditional = e.target.checked;
+            renderText();
+            saveState();
+        });
+
+        document.getElementById('textSize').addEventListener('input', (e) => {
+            appState.fontSize = e.target.value;
+            applyStyles();
+            saveState();
+        });
+
+        document.getElementById('lineHeight').addEventListener('input', (e) => {
+            appState.lineHeight = e.target.value;
+            applyStyles();
+            saveState();
+        });
+
+        document.getElementById('textColor').addEventListener('input', (e) => {
+            appState.textColor = e.target.value;
+            applyStyles();
+            saveState();
+        });
+
+        // UI Toggles
+        settingsBtn.onclick = () => settingsDrawer.classList.remove('hidden');
+        closeDrawer.onclick = () => settingsDrawer.classList.add('hidden');
+        doneBtn.onclick = () => settingsDrawer.classList.add('hidden');
+
+        // Auto-hide header on scroll
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            if (currentScroll > lastScroll && currentScroll > 100) {
+                topBar.style.transform = 'translateY(-100%)';
+            } else {
+                topBar.style.transform = 'translateY(0)';
+            }
+            lastScroll = currentScroll;
+        });
+
+        init();
+    </script>
+</body>
+</html>
