@@ -11,8 +11,8 @@
     <!-- JSZip for EPUB conversion -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { touch-action: manipulation; transition: background-color 0.3s ease; }
-        #content-area { white-space: pre-wrap; word-wrap: break-word; }
+        body { touch-action: manipulation; transition: background-color 0.3s ease; -webkit-user-select: none; }
+        #content-area { white-space: pre-wrap; word-wrap: break-word; -webkit-user-select: text; }
         .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
         input[type="range"] { width: 60%; }
         .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
@@ -22,23 +22,27 @@
         input:checked + .slider { background-color: #2563eb; }
         input:checked + .slider:before { transform: translateX(26px); }
         
-        /* Layout Fixes */
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .touch-active:active { transform: scale(0.98); }
+        .touch-active:active { transform: scale(0.98); opacity: 0.8; }
     </style>
 </head>
-<body class="bg-white text-gray-900 min-h-screen flex flex-col pb-20">
+<body class="bg-white text-gray-900 min-h-screen flex flex-col">
 
     <!-- TOP HEADER -->
-    <header id="top-bar" class="fixed top-0 left-0 right-0 z-50 bg-opacity-90 backdrop-blur-md bg-gray-100 border-b border-gray-300 p-4 flex justify-between items-center transition-transform duration-300">
-        <h1 id="header-title" class="font-bold text-lg">My Reader</h1>
+    <header id="top-bar" class="fixed top-0 left-0 right-0 z-50 bg-opacity-90 backdrop-blur-md bg-gray-100 border-b border-gray-300 p-4 flex justify-between items-center">
+        <!-- Logo acts as Tab Switcher -->
+        <div onclick="toggleTabs()" class="flex items-center gap-2 cursor-pointer active:opacity-60 transition-opacity">
+            <h1 id="header-title" class="font-bold text-lg select-none">My Reader</h1>
+            <svg id="swap-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="m7 21-4-4 4-4"/><path d="M3 17h18"/><path d="m17 3 4 4-4 4"/><path d="M21 7H3"/></svg>
+        </div>
+
         <div class="flex gap-2 items-center" id="reader-controls">
-            <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+            <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium touch-active">
                 Import
                 <input type="file" id="fileInput" accept=".txt" class="hidden">
             </label>
-            <button id="settingsBtn" class="bg-gray-200 p-1 rounded-full">
+            <button id="settingsBtn" class="bg-gray-200 p-1 rounded-full touch-active">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
         </div>
@@ -48,6 +52,7 @@
     <main id="reader-tab" class="tab-content active flex-grow pt-24 pb-12 px-6 max-w-2xl mx-auto w-full">
         <div id="content-area" class="pb-20">
             Welcome! Use the Import button to load a .txt book.
+            Tap the "My Reader" logo to switch to EPUB Converter.
         </div>
     </main>
 
@@ -56,10 +61,10 @@
         <div class="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
             <header class="text-center mb-8">
                 <h2 class="text-2xl font-bold text-slate-900">EPUB to TXT</h2>
-                <p class="text-slate-500 mt-2">Convert ebooks for this reader</p>
+                <p class="text-slate-500 mt-2">Local conversion</p>
             </header>
 
-            <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50 cursor-pointer mb-6" onclick="document.getElementById('epubInput').click()">
+            <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50 cursor-pointer mb-6 touch-active" onclick="document.getElementById('epubInput').click()">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
@@ -87,26 +92,15 @@
                 <button onclick="resetConverter()" class="w-full text-slate-500 text-sm font-medium py-2">Convert another</button>
             </div>
         </div>
+        <p class="text-center text-xs text-gray-400 mt-6">Tap the logo to go back to Reader</p>
     </main>
-
-    <!-- BOTTOM TAB NAVIGATION -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 z-50">
-        <button onclick="switchTab('reader')" id="nav-reader" class="flex flex-col items-center text-blue-600">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M8 7h6"></path><path d="M8 11h8"></path></svg>
-            <span class="text-xs mt-1">Reader</span>
-        </button>
-        <button onclick="switchTab('converter')" id="nav-converter" class="flex flex-col items-center text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
-            <span class="text-xs mt-1">Convert</span>
-        </button>
-    </nav>
 
     <!-- Settings Drawer -->
     <div id="settingsDrawer" class="fixed inset-0 z-[60] hidden">
         <div class="absolute inset-0 bg-black bg-opacity-50" id="closeDrawer"></div>
         <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl transition-transform translate-y-0">
             <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
-            <h2 class="text-xl font-bold mb-6 text-gray-800">Reading Settings</h2>
+            <h2 class="text-xl font-bold mb-6 text-gray-800 text-center">Settings</h2>
             <div class="setting-row text-gray-700">
                 <span>Traditional Chinese</span>
                 <label class="switch"><input type="checkbox" id="traditionalToggle"><span class="slider"></span></label>
@@ -116,12 +110,12 @@
             <div class="setting-row text-gray-700">
                 <span>Background</span>
                 <div class="flex gap-2">
-                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-white" onclick="setTheme('#ffffff', '#111827')"></button>
-                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#f4ecd8]" onclick="setTheme('#f4ecd8', '#5b4636')"></button>
-                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#2c2c2c]" onclick="setTheme('#2c2c2c', '#e5e7eb')"></button>
+                    <button class="w-10 h-10 rounded-full border border-gray-300 bg-white" onclick="setTheme('#ffffff', '#111827')"></button>
+                    <button class="w-10 h-10 rounded-full border border-gray-300 bg-[#f4ecd8]" onclick="setTheme('#f4ecd8', '#5b4636')"></button>
+                    <button class="w-10 h-10 rounded-full border border-gray-300 bg-[#1a1a1a]" onclick="setTheme('#1a1a1a', '#d1d5db')"></button>
                 </div>
             </div>
-            <button id="doneBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4">Done</button>
+            <button id="doneBtn" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold mt-4 touch-active">Done</button>
         </div>
     </div>
 
@@ -170,38 +164,35 @@
                     renderText();
                     setTimeout(() => {
                         if (appState.activeTab === 'reader') window.scrollTo(0, appState.scrollPos);
-                    }, 100);
+                    }, 150);
                 }
             }
-            switchTab(appState.activeTab || 'reader');
+            applyTab(appState.activeTab || 'reader');
         }
 
         function saveState() {
             localStorage.setItem('reader_state', JSON.stringify(appState));
         }
 
-        // TABS
-        function switchTab(tab) {
+        // TABS TOGGLE
+        function toggleTabs() {
+            const nextTab = appState.activeTab === 'reader' ? 'converter' : 'reader';
+            applyTab(nextTab);
+        }
+
+        function applyTab(tab) {
             appState.activeTab = tab;
             if (tab === 'reader') {
                 readerTab.classList.add('active');
                 converterTab.classList.remove('active');
                 readerControls.classList.remove('hidden');
                 headerTitle.innerText = "My Reader";
-                document.getElementById('nav-reader').classList.add('text-blue-600');
-                document.getElementById('nav-reader').classList.remove('text-gray-400');
-                document.getElementById('nav-converter').classList.add('text-gray-400');
-                document.getElementById('nav-converter').classList.remove('text-blue-600');
                 window.scrollTo(0, appState.scrollPos);
             } else {
                 readerTab.classList.remove('active');
                 converterTab.classList.add('active');
                 readerControls.classList.add('hidden');
                 headerTitle.innerText = "EPUB Converter";
-                document.getElementById('nav-converter').classList.add('text-blue-600');
-                document.getElementById('nav-converter').classList.remove('text-gray-400');
-                document.getElementById('nav-reader').classList.add('text-gray-400');
-                document.getElementById('nav-reader').classList.remove('text-blue-600');
                 window.scrollTo(0, 0);
             }
             saveState();
