@@ -26,11 +26,17 @@
 
     <header id="top-bar" class="fixed top-0 left-0 right-0 z-50 bg-opacity-90 backdrop-blur-md bg-gray-100 border-b border-gray-300 p-4 flex justify-between items-center transition-transform duration-300">
         <h1 class="font-bold text-lg">My Reader</h1>
-        <div class="flex gap-4">
+        <div class="flex gap-2 items-center">
+            <!-- New Converter Button -->
+            <a href="converter.html" class="bg-gray-200 p-1.5 rounded-full flex items-center justify-center" title="Open Converter">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-right"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+            </a>
+            
             <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                 Import
                 <input type="file" id="fileInput" accept=".txt" class="hidden">
             </label>
+            
             <button id="settingsBtn" class="bg-gray-200 p-1 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
@@ -90,7 +96,6 @@
                 applyStyles();
                 if (appState.originalText) {
                     renderText();
-                    // Wait for text to render, then scroll to saved position
                     setTimeout(() => window.scrollTo(0, appState.scrollPos), 100);
                 }
             }
@@ -100,10 +105,9 @@
             localStorage.setItem('reader_state', JSON.stringify(appState));
         }
 
-        // Track scroll position
         window.onscroll = () => {
             appState.scrollPos = window.scrollY;
-            saveState(); // Update saved position as you scroll
+            saveState();
         };
 
         function renderText() {
@@ -125,7 +129,7 @@
             const reader = new FileReader();
             reader.onload = (event) => {
                 appState.originalText = event.target.result;
-                appState.scrollPos = 0; // Reset scroll for new book
+                appState.scrollPos = 0;
                 renderText();
                 window.scrollTo(0, 0);
                 saveState();
