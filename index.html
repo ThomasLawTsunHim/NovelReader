@@ -8,47 +8,100 @@
     <title>My Personal Reader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+    <!-- JSZip for EPUB conversion -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { touch-action: manipulation; transition: background-color 0.3s ease; }
         #content-area { white-space: pre-wrap; word-wrap: break-word; }
         .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
         input[type="range"] { width: 60%; }
-        /* Toggle Switch Styling */
         .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #2563eb; }
         input:checked + .slider:before { transform: translateX(26px); }
+        
+        /* Layout Fixes */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .touch-active:active { transform: scale(0.98); }
     </style>
 </head>
-<body class="bg-white text-gray-900 min-h-screen flex flex-col">
+<body class="bg-white text-gray-900 min-h-screen flex flex-col pb-20">
 
+    <!-- TOP HEADER -->
     <header id="top-bar" class="fixed top-0 left-0 right-0 z-50 bg-opacity-90 backdrop-blur-md bg-gray-100 border-b border-gray-300 p-4 flex justify-between items-center transition-transform duration-300">
-        <h1 class="font-bold text-lg">My Reader</h1>
-        <div class="flex gap-2 items-center">
-            <!-- New Converter Button -->
-            <a href="converter.html" class="bg-gray-200 p-1.5 rounded-full flex items-center justify-center" title="Open Converter">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-right"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
-            </a>
-            
+        <h1 id="header-title" class="font-bold text-lg">My Reader</h1>
+        <div class="flex gap-2 items-center" id="reader-controls">
             <label class="cursor-pointer bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                 Import
                 <input type="file" id="fileInput" accept=".txt" class="hidden">
             </label>
-            
             <button id="settingsBtn" class="bg-gray-200 p-1 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
         </div>
     </header>
 
-    <main id="reader-container" class="flex-grow pt-24 pb-12 px-6 max-w-2xl mx-auto w-full">
+    <!-- TAB: READER -->
+    <main id="reader-tab" class="tab-content active flex-grow pt-24 pb-12 px-6 max-w-2xl mx-auto w-full">
         <div id="content-area" class="pb-20">
             Welcome! Use the Import button to load a .txt book.
         </div>
     </main>
 
+    <!-- TAB: CONVERTER -->
+    <main id="converter-tab" class="tab-content flex-grow pt-24 pb-12 px-6 max-w-md mx-auto w-full">
+        <div class="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
+            <header class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-slate-900">EPUB to TXT</h2>
+                <p class="text-slate-500 mt-2">Convert ebooks for this reader</p>
+            </header>
+
+            <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-slate-50 cursor-pointer mb-6" onclick="document.getElementById('epubInput').click()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span class="text-slate-600 font-medium">Select .epub file</span>
+                <input type="file" id="epubInput" accept=".epub" class="hidden">
+            </div>
+
+            <div id="statusArea" class="hidden mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="statusLabel" class="text-sm font-medium text-slate-600">Processing...</span>
+                    <span id="statusPercent" class="text-sm text-blue-600 font-bold">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2">
+                    <div id="progressBar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="resultArea" class="hidden flex flex-col space-y-4">
+                <div class="p-4 bg-green-50 border border-green-100 rounded-xl flex items-center">
+                    <span class="text-green-800 text-sm font-medium">Conversion successful!</span>
+                </div>
+                <button id="downloadBtn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg touch-active">
+                    Download .txt
+                </button>
+                <button onclick="resetConverter()" class="w-full text-slate-500 text-sm font-medium py-2">Convert another</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM TAB NAVIGATION -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-3 z-50">
+        <button onclick="switchTab('reader')" id="nav-reader" class="flex flex-col items-center text-blue-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M8 7h6"></path><path d="M8 11h8"></path></svg>
+            <span class="text-xs mt-1">Reader</span>
+        </button>
+        <button onclick="switchTab('converter')" id="nav-converter" class="flex flex-col items-center text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+            <span class="text-xs mt-1">Convert</span>
+        </button>
+    </nav>
+
+    <!-- Settings Drawer -->
     <div id="settingsDrawer" class="fixed inset-0 z-[60] hidden">
         <div class="absolute inset-0 bg-black bg-opacity-50" id="closeDrawer"></div>
         <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl transition-transform translate-y-0">
@@ -66,19 +119,37 @@
                     <button class="w-8 h-8 rounded-full border border-gray-300 bg-white" onclick="setTheme('#ffffff', '#111827')"></button>
                     <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#f4ecd8]" onclick="setTheme('#f4ecd8', '#5b4636')"></button>
                     <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#2c2c2c]" onclick="setTheme('#2c2c2c', '#e5e7eb')"></button>
-                    <button class="w-8 h-8 rounded-full border border-gray-300 bg-[#000000]" onclick="setTheme('#000000', '#9ca3af')"></button>
                 </div>
             </div>
             <button id="doneBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4">Done</button>
         </div>
     </div>
 
+    <a id="hiddenDownload" style="display:none"></a>
+
     <script>
+        // DOM ELEMENTS
         const contentArea = document.getElementById('content-area');
         const fileInput = document.getElementById('fileInput');
+        const epubInput = document.getElementById('epubInput');
         const traditionalToggle = document.getElementById('traditionalToggle');
-        const converter = OpenCC.Converter({ from: 'cn', to: 'hk' });
+        const readerTab = document.getElementById('reader-tab');
+        const converterTab = document.getElementById('converter-tab');
+        const readerControls = document.getElementById('reader-controls');
+        const headerTitle = document.getElementById('header-title');
+        
+        // CONVERTER ELEMENTS
+        const statusArea = document.getElementById('statusArea');
+        const resultArea = document.getElementById('resultArea');
+        const dropZone = document.getElementById('dropZone');
+        const progressBar = document.getElementById('progressBar');
+        const statusLabel = document.getElementById('statusLabel');
+        const statusPercent = document.getElementById('statusPercent');
 
+        // STATE
+        const converter = OpenCC.Converter({ from: 'cn', to: 'hk' });
+        let convertedTextBuffer = "";
+        let originalFileName = "";
         let appState = {
             originalText: "",
             fontSize: 18,
@@ -86,7 +157,8 @@
             bgColor: "#ffffff",
             textColor: "#111827",
             useTraditional: false,
-            scrollPos: 0
+            scrollPos: 0,
+            activeTab: 'reader'
         };
 
         function init() {
@@ -96,20 +168,54 @@
                 applyStyles();
                 if (appState.originalText) {
                     renderText();
-                    setTimeout(() => window.scrollTo(0, appState.scrollPos), 100);
+                    setTimeout(() => {
+                        if (appState.activeTab === 'reader') window.scrollTo(0, appState.scrollPos);
+                    }, 100);
                 }
             }
+            switchTab(appState.activeTab || 'reader');
         }
 
         function saveState() {
             localStorage.setItem('reader_state', JSON.stringify(appState));
         }
 
-        window.onscroll = () => {
-            appState.scrollPos = window.scrollY;
+        // TABS
+        function switchTab(tab) {
+            appState.activeTab = tab;
+            if (tab === 'reader') {
+                readerTab.classList.add('active');
+                converterTab.classList.remove('active');
+                readerControls.classList.remove('hidden');
+                headerTitle.innerText = "My Reader";
+                document.getElementById('nav-reader').classList.add('text-blue-600');
+                document.getElementById('nav-reader').classList.remove('text-gray-400');
+                document.getElementById('nav-converter').classList.add('text-gray-400');
+                document.getElementById('nav-converter').classList.remove('text-blue-600');
+                window.scrollTo(0, appState.scrollPos);
+            } else {
+                readerTab.classList.remove('active');
+                converterTab.classList.add('active');
+                readerControls.classList.add('hidden');
+                headerTitle.innerText = "EPUB Converter";
+                document.getElementById('nav-converter').classList.add('text-blue-600');
+                document.getElementById('nav-converter').classList.remove('text-gray-400');
+                document.getElementById('nav-reader').classList.add('text-gray-400');
+                document.getElementById('nav-reader').classList.remove('text-blue-600');
+                window.scrollTo(0, 0);
+            }
             saveState();
+        }
+
+        // SCROLL TRACKING
+        window.onscroll = () => {
+            if (appState.activeTab === 'reader') {
+                appState.scrollPos = window.scrollY;
+                saveState();
+            }
         };
 
+        // READER LOGIC
         function renderText() {
             if (!appState.originalText) return;
             contentArea.innerText = appState.useTraditional ? converter(appState.originalText) : appState.originalText;
@@ -137,12 +243,81 @@
             reader.readAsText(file);
         });
 
-        traditionalToggle.addEventListener('change', (e) => {
-            appState.useTraditional = e.target.checked;
-            renderText();
-            saveState();
+        // CONVERTER LOGIC
+        epubInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !file.name.toLowerCase().endsWith('.epub')) return;
+            originalFileName = file.name.replace(/\.[^/.]+$/, "");
+            startConversion(file);
         });
 
+        async function startConversion(file) {
+            dropZone.classList.add('hidden');
+            statusArea.classList.remove('hidden');
+            try {
+                updateProgress(10, "Reading EPUB...");
+                const zip = new JSZip();
+                const contents = await zip.loadAsync(file);
+                
+                const textFiles = Object.keys(contents.files).filter(path => 
+                    path.endsWith('.xhtml') || path.endsWith('.html') || path.endsWith('.htm')
+                ).sort();
+
+                if (textFiles.length === 0) throw new Error("No text found.");
+
+                let fullText = "";
+                for (let i = 0; i < textFiles.length; i++) {
+                    updateProgress(30 + Math.floor((i / textFiles.length) * 60), `Processing chapter ${i+1}...`);
+                    const htmlContent = await contents.files[textFiles[i]].async("text");
+                    fullText += parseEpubHtml(htmlContent) + "\n\n";
+                }
+
+                convertedTextBuffer = fullText.trim();
+                updateProgress(100, "Done!");
+                setTimeout(() => {
+                    statusArea.classList.add('hidden');
+                    resultArea.classList.remove('hidden');
+                }, 500);
+            } catch (err) {
+                alert("Error: " + err.message);
+                resetConverter();
+            }
+        }
+
+        function parseEpubHtml(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const toRemove = doc.querySelectorAll('style, script, head, title');
+            toRemove.forEach(el => el.remove());
+            return (doc.body.innerText || "").replace(/\n\s*\n/g, '\n\n').trim();
+        }
+
+        function updateProgress(percent, text) {
+            progressBar.style.width = percent + "%";
+            statusPercent.innerText = percent + "%";
+            statusLabel.innerText = text;
+        }
+
+        function resetConverter() {
+            dropZone.classList.remove('hidden');
+            statusArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            epubInput.value = "";
+        }
+
+        document.getElementById('downloadBtn').onclick = () => {
+            if (!convertedTextBuffer) return;
+            const blob = new Blob([convertedTextBuffer], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.getElementById('hiddenDownload');
+            a.href = url;
+            a.download = originalFileName + ".txt";
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        };
+
+        // SETTINGS & UI
+        traditionalToggle.onchange = (e) => { appState.useTraditional = e.target.checked; renderText(); saveState(); };
         document.getElementById('textSize').oninput = (e) => { appState.fontSize = e.target.value; applyStyles(); saveState(); };
         document.getElementById('lineHeight').oninput = (e) => { appState.lineHeight = e.target.value; applyStyles(); saveState(); };
         function setTheme(bg, text) { appState.bgColor = bg; appState.textColor = text; applyStyles(); saveState(); }
